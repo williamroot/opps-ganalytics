@@ -93,17 +93,24 @@ def get_metadata(self, verbose=False):
         if filters:
             params['filters'] = filters
 
-        params['start_date'] = datetime.date.today()
-        if q.start_date:
-            params['start_date'] = datetime.date(q.start_date.year,
-                                                 q.start_date.month,
-                                                 q.start_date.day)
+        if getattr(settings, 'OPPS_GANALYTICS_QUERY_RANGE_DAYS'):
+            today = datetime.date.today()
+            params['start_date'] = today - datetime.timedelta(
+                days=getattr(settings, 'OPPS_GANALYTICS_QUERY_RANGE_DAYS')
+            )
+            params['end_date'] = today
+        else:
+            params['start_date'] = datetime.date.today()
+            if q.start_date:
+                params['start_date'] = datetime.date(q.start_date.year,
+                                                     q.start_date.month,
+                                                     q.start_date.day)
 
-        params['end_date'] = datetime.date.today()
-        if q.end_date:
-            params['end_date'] = datetime.date(q.end_date.year,
-                                               q.end_date.month,
-                                               q.end_date.day)
+            params['end_date'] = datetime.date.today()
+            if q.end_date:
+                params['end_date'] = datetime.date(q.end_date.year,
+                                                   q.end_date.month,
+                                                   q.end_date.day)
 
         params['metrics'] = 'ga:pageviews,ga:timeOnPage,ga:entrances'
         params['dimensions'] = 'ga:pageTitle,ga:pagePath'
