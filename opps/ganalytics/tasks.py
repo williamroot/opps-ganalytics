@@ -87,18 +87,22 @@ def get_metadata(self, verbose=False):
 
     for q in query:
         params = {'ids': 'ga:{0}'.format(q.account.profile_id)}
+        range_days = getattr(settings, 'OPPS_GANALYTICS_QUERY_RANGE_DAYS')
 
         filters = q.formatted_filters()
 
         if filters:
             params['filters'] = filters
 
-        if getattr(settings, 'OPPS_GANALYTICS_QUERY_RANGE_DAYS'):
+        if range_days:
+            # equivalent to interface filters, eg the last 7 days
             today = datetime.date.today()
             params['start_date'] = today - datetime.timedelta(
-                days=getattr(settings, 'OPPS_GANALYTICS_QUERY_RANGE_DAYS')
+                days=range_days
             )
-            params['end_date'] = today
+            params['end_date'] = today - datetime.timedelta(
+                days=1
+            )
         else:
             params['start_date'] = datetime.date.today()
             if q.start_date:
@@ -115,7 +119,11 @@ def get_metadata(self, verbose=False):
         params['metrics'] = 'ga:pageviews,ga:timeOnPage,ga:entrances'
         params['dimensions'] = 'ga:pageTitle,ga:pagePath'
         params['sort'] = '-ga:pageviews'
-        params['max_results'] = 10000
+        params['max_results'] = getattr(
+            settings, 'OPPS_GANALYTICS_QUERY_MAX_RESULTS', 1000
+        )
+        # usually the first place is always the home
+        params['max_results'] += 1
 
         def cleanup_params(params):
             p = params.copy()
@@ -131,7 +139,6 @@ def get_metadata(self, verbose=False):
 
             params['start_date'] -= datetime.timedelta(days=1)
             params['end_date'] -= datetime.timedelta(days=1)
-
             count_data = data['totalResults']
 
         TITLE, URL, PAGEVIEWS, TIMEONPAGE, ENTRANCES = 0, 1, 2, 3, 4
@@ -156,3 +163,4 @@ def get_metadata(self, verbose=False):
                 report.timeonpage = row[TIMEONPAGE]
                 report.entrances = row[ENTRANCES]
                 report.save()
+                print url, ' ->', row[PAGEVIEWS]
